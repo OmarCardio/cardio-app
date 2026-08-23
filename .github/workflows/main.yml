@@ -1,4 +1,4 @@
-name: Build Android APK (Fix Definitif)
+name: Build Android APK (LE VRAI FIX FINAL)
 
 on:
   workflow_dispatch:
@@ -11,26 +11,45 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: 1. Verifier le contenu de lib/ (Important)
+        run: |
+          echo "Vérification de la présence de ton code dans lib/ :"
+          ls -R lib/
+          if [ ! -f lib/main.dart ]; then
+            echo "ERREUR CRITIQUE : Ton fichier lib/main.dart n'est pas dans le dépôt !"
+            exit 1
+          fi
+
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.6'
           channel: 'stable'
 
-      - name: Regenerer la structure native (SANS ecraser lib/ ni pubspec.yaml)
+      - name: 2. Preparation, Regeneration et Integration FORCÉE de ton code
         run: |
-          # On s'assure d'etre a la racine
-          # L'option `.` regenere UNIQUEMENT les dossiers natifs android/ et windows/
-          # si pubspec.yaml et lib/ sont deja presents.
+          # A. Sauvegarder ton code existant (lib et pubspec.yaml)
+          mkdir -p user_code_backup
+          cp -r lib/* user_code_backup/
+          cp pubspec.yaml user_pubspec.yaml
+
+          # B. Régénérer la structure native Flutter proprement
+          echo "Régénération de la structure native..."
           flutter create . --project-name cardio_app --org com.cardio.app
 
-      - name: Get Dependencies
+          # C. FORCE : Écraser TOUT le dossier lib/ généré avec TON code sauvegardé
+          echo "Intégration FORCÉE de ton code utilisateur (écrasement)..."
+          rm -rf lib/*
+          cp -r user_code_backup/* lib/
+          cp user_pubspec.yaml pubspec.yaml
+
+      - name: 3. Installer les dépendances
         run: flutter pub get
 
-      - name: Compilation APK Debug (pour installation facile)
+      - name: 4. Compilation APK Debug (pour installation facile)
         # CETTE COMMANDE COMPILE OBLIGATOIREMENT lib/main.dart SANS ERREUR POSSIBLE
         run: flutter build apk --debug
 
-      - name: Telechargement APK
+      - name: 5. Telechargement APK
         uses: actions/upload-artifact@v4
         with:
           name: CardioApp-Android-APK
