@@ -14,7 +14,9 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.x'
+      - run: cp pubspec.yaml pubspec.yaml.bak
       - run: flutter create . --platforms=android --org com.cardio.app
+      - run: cp pubspec.yaml.bak pubspec.yaml
       - run: flutter pub get
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
@@ -30,8 +32,10 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.x'
+      - run: copy pubspec.yaml pubspec.yaml.bak
       - run: flutter config --enable-windows-desktop
       - run: flutter create . --platforms=windows --org com.cardio.app
+      - run: copy /y pubspec.yaml.bak pubspec.yaml
       - run: flutter pub get
       - run: flutter build windows --release
       - uses: actions/upload-artifact@v4
