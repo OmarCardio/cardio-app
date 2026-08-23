@@ -14,6 +14,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.x'
+      - run: flutter create . --platforms=android --org com.cardio.app
       - run: flutter pub get
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
@@ -30,6 +31,7 @@ jobs:
         with:
           flutter-version: '3.19.x'
       - run: flutter config --enable-windows-desktop
+      - run: flutter create . --platforms=windows --org com.cardio.app
       - run: flutter pub get
       - run: flutter build windows --release
       - uses: actions/upload-artifact@v4
