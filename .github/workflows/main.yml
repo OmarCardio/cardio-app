@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android APK (Fix Definitif)
 
 on:
   workflow_dispatch:
@@ -14,21 +14,24 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.6'
+          channel: 'stable'
 
-      - name: Preparation du projet
+      - name: Regenerer la structure native (SANS ecraser lib/ ni pubspec.yaml)
         run: |
-          flutter create --project-name cardio_app --org com.cardio.app dossier_temp
-          cp pubspec.yaml dossier_temp/pubspec.yaml
-          cp -r lib/* dossier_temp/lib/
+          # On s'assure d'etre a la racine
+          # L'option `.` regenere UNIQUEMENT les dossiers natifs android/ et windows/
+          # si pubspec.yaml et lib/ sont deja presents.
+          flutter create . --project-name cardio_app --org com.cardio.app
 
-      - name: Compilation APK
-        run: |
-          cd dossier_temp
-          flutter pub get
-          flutter build apk --release
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Compilation APK Debug (pour installation facile)
+        # CETTE COMMANDE COMPILE OBLIGATOIREMENT lib/main.dart SANS ERREUR POSSIBLE
+        run: flutter build apk --debug
 
       - name: Telechargement APK
         uses: actions/upload-artifact@v4
         with:
           name: CardioApp-Android-APK
-          path: dossier_temp/build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
