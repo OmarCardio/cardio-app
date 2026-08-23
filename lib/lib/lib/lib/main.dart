@@ -1,8 +1,9 @@
+// --- COPIE TOUT CE CODE CI-DESSOUS DANS TON FICHIER LIB/MAIN.DART ---
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'database_helper.dart';
-import 'rule_engine.dart';
-import 'offline_transfer.dart';
+import 'database_helper.dart'; // Assure-toi que ce fichier existe aussi dans lib/
+import 'rule_engine.dart';    // Assure-toi que ce fichier existe aussi dans lib/
+import 'offline_transfer.dart'; // Assure-toi que ce fichier existe aussi dans lib/
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,8 +38,8 @@ class _MainDashboardState extends State<MainDashboard> {
   List<Map<String, dynamic>> _patients = [];
   List<Map<String, dynamic>> _modules = [];
   String _qrData = 'CARDIO_INIT';
-  bool _hasHTA = true;
-  bool _isRamadan = true;
+  bool _hasHTA = true; // Exemple de facteur de risque activé par défaut
+  bool _isRamadan = true; // Exemple activé par défaut
 
   @override
   void initState() {
@@ -47,22 +48,41 @@ class _MainDashboardState extends State<MainDashboard> {
   }
 
   Future<void> _loadData() async {
-    final patients = await DatabaseHelper.instance.getPatients();
-    final modules = await DatabaseHelper.instance.getModules();
-    setState(() {
-      _patients = patients;
-      _modules = modules;
-      _updateQR();
-    });
+    // Initialise la base de données et charge les données démo
+    final dbHelper = DatabaseHelper.instance;
+    final patients = await dbHelper.getPatients();
+    final modules = await dbHelper.getModules();
+    
+    // Si pas de données démo, on les insère (première fois)
+    if (patients.isEmpty && modules.isEmpty) {
+        await dbHelper.seedDatabase(); // Appelle la fonction de seed
+        // Recharge les données après insertion
+        final updatedPatients = await dbHelper.getPatients();
+        final updatedModules = await dbHelper.getModules();
+        setState(() {
+            _patients = updatedPatients;
+            _modules = updatedModules;
+            _updateQR();
+        });
+    } else {
+        setState(() {
+          _patients = patients;
+          _modules = modules;
+          _updateQR();
+        });
+    }
   }
 
   void _updateQR() {
+    // Le médecin sélectionne les critères, le moteur de règle choisit les modules
     final activeModules = RuleEngine.evaluate(
       hasHTA: _hasHTA,
-      hasCoronary: false,
+      hasCoronary: false, // Exemple
       isRamadanPeriod: _isRamadan,
     );
+    
     setState(() {
+      // Génère le payload du QR Code
       _qrData = OfflineTransfer.generateQrPayload('PAT-DEMO-001', activeModules);
     });
   }
@@ -77,7 +97,7 @@ class _MainDashboardState extends State<MainDashboard> {
       ),
       body: Row(
         children: [
-          // Panneau Gauche : Sélection Médecin
+          // Panneau Gauche : Sélection Médecin & Liste des Modules
           Expanded(
             flex: 2,
             child: Padding(
@@ -86,6 +106,7 @@ class _MainDashboardState extends State<MainDashboard> {
                 children: [
                   const Text('Profil Patient (Consultation)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
+                  // Section pour activer/désactiver les critères
                   SwitchListTile(
                     title: const Text('Hypertension Artérielle (HTA)'),
                     value: _hasHTA,
@@ -101,8 +122,9 @@ class _MainDashboardState extends State<MainDashboard> {
                     },
                   ),
                   const Divider(),
-                  const Text('Modules activés dans la fiche :', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ..._modules.map((m) => ListTile(
+                  const Text('Modules activés dans la fiche patient :', style: TextStyle(fontWeight: FontWeight.bold)),
+                  // Affiche dynamiquement les modules sélectionnés
+                  ..._modules.where((m) => RuleEngine.evaluate(hasHTA: _hasHTA, hasCoronary: false, isRamadanPeriod: _isRamadan).contains(m['id'])).map((m) => ListTile(
                     leading: const Icon(Icons.check_circle, color: Colors.green),
                     title: Text(m['titre_fr']),
                     subtitle: Text(m['titre_ar'], textDirection: TextDirection.rtl),
@@ -125,10 +147,14 @@ class _MainDashboardState extends State<MainDashboard> {
                   const SizedBox(height: 10),
                   const Text('Faites scanner ce code au patient depuis son smartphone :', textAlign: TextAlign.center),
                   const SizedBox(height: 20),
+                  // Affiche le QR Code généré
                   QrImageView(
                     data: _qrData,
                     version: QrVersions.auto,
                     size: 220.0,
+                    gapless: false,
+                    embeddedImage: const AssetImage('assets/images/logo_heart.png'), // Optionnel
+                    embeddedImageStyle: const QrEmbeddedImageStyle(size: Size(40, 40)),
                   ),
                   const SizedBox(height: 15),
                   Chip(
