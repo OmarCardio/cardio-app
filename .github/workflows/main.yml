@@ -1,4 +1,4 @@
-name: Build Applications
+name: Build Android APK
 
 on:
   workflow_dispatch:
@@ -11,34 +11,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.x'
-      - run: cp pubspec.yaml pubspec.yaml.bak
-      - run: flutter create . --platforms=android --org com.cardio.app
-      - run: cp pubspec.yaml.bak pubspec.yaml
-      - run: flutter pub get
-      - run: flutter build apk --release
-      - uses: actions/upload-artifact@v4
+          
+      - name: Replacer le projet Flutter
+        run: |
+          mkdir temp_lib
+          cp -r lib/* temp_lib/
+          cp pubspec.yaml temp_pubspec.yaml
+          flutter create . --platforms=android --org com.cardio.app
+          cp -r temp_lib/* lib/
+          cp temp_pubspec.yaml pubspec.yaml
+          
+      - name: Obtenir les dépendances
+        run: flutter pub get
+        
+      - name: Compiler APK
+        run: flutter build apk --release --no-tree-shake-icons
+        
+      - name: Telecharger APK
+        uses: actions/upload-artifact@v4
         with:
           name: CardioApp-Android-APK
           path: build/app/outputs/flutter-apk/app-release.apk
-
-  build-windows:
-    name: Build Windows EXE
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.19.x'
-      - run: copy pubspec.yaml pubspec.yaml.bak
-      - run: flutter config --enable-windows-desktop
-      - run: flutter create . --platforms=windows --org com.cardio.app
-      - run: copy /y pubspec.yaml.bak pubspec.yaml
-      - run: flutter pub get
-      - run: flutter build windows --release
-      - uses: actions/upload-artifact@v4
-        with:
-          name: CardioApp-Windows-EXE
-          path: build/windows/x64/runner/Release/
