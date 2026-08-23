@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android et Windows
 
 on:
   workflow_dispatch:
@@ -10,29 +10,50 @@ jobs:
     name: Build Android APK
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
+      - uses: actions/checkout@v4
+
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.x'
-          
-      - name: Replacer le projet Flutter
+          flutter-version: '3.19.6'
+
+      - name: Construction APK
         run: |
-          mkdir temp_lib
-          cp -r lib/* temp_lib/
-          cp pubspec.yaml temp_pubspec.yaml
-          flutter create . --platforms=android --org com.cardio.app
-          cp -r temp_lib/* lib/
-          cp temp_pubspec.yaml pubspec.yaml
-          
-      - name: Obtenir les dépendances
-        run: flutter pub get
-        
-      - name: Compiler APK
-        run: flutter build apk --release --no-tree-shake-icons
-        
-      - name: Telecharger APK
+          flutter create --project-name cardio_app --org com.cardio.app dossier_temp
+          cp pubspec.yaml dossier_temp/pubspec.yaml
+          cp -r lib/* dossier_temp/lib/
+          cd dossier_temp
+          flutter pub get
+          flutter build apk --release
+
+      - name: Telechargement APK
         uses: actions/upload-artifact@v4
         with:
           name: CardioApp-Android-APK
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: dossier_temp/build/app/outputs/flutter-apk/app-release.apk
+
+  build-windows:
+    name: Build Windows EXE
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.6'
+
+      - name: Construction Windows EXE
+        shell: bash
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --project-name cardio_app --org com.cardio.app dossier_temp
+          cp pubspec.yaml dossier_temp/pubspec.yaml
+          cp -r lib/* dossier_temp/lib/
+          cd dossier_temp
+          flutter pub get
+          flutter build windows --release
+
+      - name: Telechargement Windows EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: CardioApp-Windows-EXE
+          path: dossier_temp/build/windows/x64/runner/Release/
